@@ -1,0 +1,988 @@
+<!DOCTYPE html>
+<html lang="id">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Modern Resto POS</title>
+
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+    />
+    <link
+      href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css"
+      rel="stylesheet"
+    />
+
+    <style>
+      :root {
+        --primary-color: #ff6b6b;
+        --secondary-color: #4ecdc4;
+        --dark-bg: #f7f9fc;
+        --card-shadow: 0 10px 20px rgba(0, 0, 0, 0.05);
+      }
+
+      body {
+        font-family: "Poppins", sans-serif;
+        background-color: var(--dark-bg);
+        color: #333;
+      }
+
+      /* Navbar Styling */
+      .navbar {
+        background: white;
+        box-shadow: 0 2px 15px rgba(0, 0, 0, 0.05);
+        padding: 1rem 0;
+      }
+      .navbar-brand {
+        font-weight: 700;
+        color: var(--primary-color) !important;
+        font-size: 1.5rem;
+      }
+
+      /* Cards Styling */
+      .card {
+        border: none;
+        border-radius: 15px;
+        box-shadow: var(--card-shadow);
+        transition: transform 0.2s;
+        background: white;
+      }
+
+      .menu-card {
+        cursor: pointer;
+        border: 2px solid transparent;
+      }
+      .menu-card:hover {
+        transform: translateY(-5px);
+        border-color: var(--primary-color);
+      }
+
+      /* Menu Item Styling */
+      .menu-icon {
+        font-size: 2rem;
+        margin-bottom: 10px;
+        color: var(--primary-color);
+      }
+
+      .price-tag {
+        font-weight: 700;
+        color: #2d3436;
+      }
+
+      /* Cart Area */
+      .cart-section {
+        position: sticky;
+        top: 20px;
+      }
+
+      /* Buttons */
+      .btn-primary {
+        background-color: var(--primary-color);
+        border: none;
+        border-radius: 10px;
+        padding: 10px 20px;
+      }
+      .btn-primary:hover {
+        background-color: #ff5252;
+      }
+
+      .btn-success {
+        background-color: var(--secondary-color);
+        border: none;
+        color: #fff;
+      }
+
+      /* Badge Status */
+      .status-badge {
+        padding: 5px 12px;
+        border-radius: 20px;
+        font-size: 0.85rem;
+        font-weight: 600;
+      }
+      .badge-cooking {
+        background-color: #ffeaa7;
+        color: #d68910;
+      }
+      .badge-served {
+        background-color: #c7ecee;
+        color: #22a6b3;
+      }
+      .badge-paid {
+        background-color: #badc58;
+        color: #6ab04c;
+      }
+
+      /* Table Styling */
+      .modern-table thead th {
+        background-color: #f8f9fa;
+        border-bottom: 2px solid #eee;
+        color: #636e72;
+        font-weight: 600;
+        text-transform: uppercase;
+        font-size: 0.85rem;
+      }
+      .modern-table tbody tr {
+        transition: background 0.2s;
+      }
+      .modern-table tbody tr:hover {
+        background-color: #fff5f5;
+      }
+
+      /* Floating Action Button for Mobile */
+      .fab-add {
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        border-radius: 50%;
+        width: 60px;
+        height: 60px;
+        font-size: 24px;
+        box-shadow: 0 4px 15px rgba(255, 107, 107, 0.4);
+        z-index: 1000;
+      }
+    </style>
+  </head>
+  <body>
+    <nav class="navbar navbar-expand-lg sticky-top">
+      <div class="container">
+        <a class="navbar-brand" href="#">
+          <i class="fa-solid fa-utensils me-2"></i>Resto<span class="text-dark"
+            >Manager</span
+          >
+        </a>
+        <div class="d-flex gap-2">
+          <button
+            class="btn btn-outline-primary rounded-pill"
+            onclick="loadOrders()"
+          >
+            <i class="fa-solid fa-rotate-right me-1"></i> Refresh
+          </button>
+          <button
+            class="btn btn-primary rounded-pill"
+            data-bs-toggle="modal"
+            data-bs-target="#addMenuModal"
+          >
+            <i class="fa-solid fa-plus me-1"></i> Menu Baru
+          </button>
+        </div>
+      </div>
+    </nav>
+
+    <div class="container py-4">
+      <div class="row g-4">
+        <div class="col-lg-7 col-md-12">
+          <div class="d-flex justify-content-between align-items-center mb-3">
+            <h4 class="fw-bold mb-0">🍽️ Daftar Menu</h4>
+            <select class="d-none" id="menuSelect"></select>
+          </div>
+
+          <div id="menuGrid" class="row g-3">
+            <div class="col-12 text-center py-5">
+              <div class="spinner-border text-primary" role="status"></div>
+            </div>
+          </div>
+
+          <div class="card mt-5">
+            <div
+              class="card-header bg-white border-0 py-3 d-flex justify-content-between align-items-center"
+            >
+              <h5 class="fw-bold mb-0">
+                <i class="fa-solid fa-list-check me-2 text-warning"></i>Antrian
+                Pesanan
+              </h5>
+              <button
+                class="btn btn-sm btn-outline-danger rounded-pill"
+                onclick="deleteAllOrders()"
+              >
+                <i class="fa-solid fa-trash me-1"></i> Reset Data
+              </button>
+            </div>
+            <div class="card-body p-0">
+              <div class="table-responsive">
+                <table class="table modern-table table-hover align-middle mb-0">
+                  <thead>
+                    <tr>
+                      <th>Meja</th>
+                      <th>Pelanggan</th>
+                      <th>Items</th>
+                      <th>Total</th>
+                      <th>Status</th>
+                      <th>Aksi</th>
+                    </tr>
+                  </thead>
+                  <tbody id="ordersTableBody"></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="col-lg-5 col-md-12">
+          <div class="cart-section">
+            <div class="card shadow-lg border-0">
+              <div
+                class="card-header bg-primary text-white py-3"
+                style="border-radius: 15px 15px 0 0"
+              >
+                <h5 class="mb-0 text-center">
+                  <i class="fa-solid fa-cash-register me-2"></i>Order Baru
+                </h5>
+              </div>
+              <div class="card-body p-4">
+                <form id="orderForm">
+                  <div class="row g-2 mb-3">
+                    <div class="col-4">
+                      <label class="form-label small text-muted">Meja</label>
+                      <input
+                        type="number"
+                        class="form-control text-center fw-bold"
+                        id="tableNumber"
+                        placeholder="#"
+                        required
+                      />
+                    </div>
+                    <div class="col-8">
+                      <label class="form-label small text-muted"
+                        >Pelanggan</label
+                      >
+                      <div class="input-group">
+                        <select
+                          class="form-select"
+                          id="customerSelect"
+                          required
+                        >
+                          <option value="">Pilih...</option>
+                        </select>
+                        <button
+                          class="btn btn-success"
+                          type="button"
+                          data-bs-toggle="modal"
+                          data-bs-target="#addCustomerModal"
+                        >
+                          <i class="fa-solid fa-user-plus"></i>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
+                  <hr class="text-muted opacity-25" />
+
+                  <h6 class="fw-bold mb-3 text-secondary">Keranjang Belanja</h6>
+                  <div
+                    id="cartItems"
+                    class="mb-3 custom-scrollbar"
+                    style="
+                      max-height: 250px;
+                      overflow-y: auto;
+                      min-height: 100px;
+                    "
+                  >
+                    <div class="text-center text-muted py-4">
+                      <i
+                        class="fa-solid fa-basket-shopping fa-2x mb-2 opacity-50"
+                      ></i>
+                      <p class="small">Belum ada menu dipilih</p>
+                    </div>
+                  </div>
+
+                  <input type="hidden" id="qtyInput" value="1" />
+                  <input type="hidden" id="userId" value="1" />
+
+                  <button
+                    type="submit"
+                    class="btn btn-primary w-100 py-3 fw-bold shadow-sm"
+                  >
+                    <i class="fa-solid fa-paper-plane me-2"></i> Kirim ke Dapur
+                  </button>
+                </form>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal fade" id="addCustomerModal" tabindex="-1">
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+          <div class="modal-header bg-light">
+            <h5 class="modal-title fw-bold">Tambah Pelanggan</h5>
+            <button
+              type="button"
+              class="btn-close"
+              data-bs-dismiss="modal"
+            ></button>
+          </div>
+          <div class="modal-body p-4">
+            <form id="addCustomerForm">
+              <div class="mb-3">
+                <label class="form-label text-muted">Nama Lengkap</label>
+                <input
+                  type="text"
+                  class="form-control"
+                  id="newCustName"
+                  required
+                />
+              </div>
+              <div class="mb-3">
+                <label class="form-label text-muted">No. HP (Opsional)</label>
+                <input type="text" class="form-control" id="newCustPhone" />
+              </div>
+              <button type="submit" class="btn btn-success w-100 rounded-pill">
+                Simpan Data
+              </button>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal fade" id="addMenuModal" tabindex="-1">
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+          <div class="modal-header bg-primary text-white">
+            <h5 class="modal-title fw-bold">Tambah Menu Baru</h5>
+            <button
+              type="button"
+              class="btn-close btn-close-white"
+              data-bs-dismiss="modal"
+            ></button>
+          </div>
+          <div class="modal-body p-4">
+            <form id="addMenuForm">
+              <div class="mb-3">
+                <label class="form-label text-muted">Nama Menu</label>
+                <input
+                  type="text"
+                  class="form-control"
+                  id="newMenuName"
+                  required
+                />
+              </div>
+              <div class="row mb-3">
+                <div class="col-6">
+                  <label class="form-label text-muted">Harga</label>
+                  <input
+                    type="number"
+                    class="form-control"
+                    id="newMenuPrice"
+                    min="0"
+                    required
+                  />
+                </div>
+                <div class="col-6">
+                  <label class="form-label text-muted">Kategori</label>
+                  <select class="form-select" id="newMenuCategory" required>
+                    <option value="makanan">Makanan</option>
+                    <option value="minuman">Minuman</option>
+                  </select>
+                </div>
+              </div>
+              <div class="mb-3 form-check">
+                <input
+                  type="checkbox"
+                  class="form-check-input"
+                  id="newMenuAvailable"
+                  checked
+                />
+                <label class="form-check-label text-muted"
+                  >Tersedia untuk dipesan</label
+                >
+              </div>
+              <button type="submit" class="btn btn-primary w-100 rounded-pill">
+                Simpan Menu
+              </button>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+    <script>
+      const API_URL = "api.php/records";
+
+      let cart = [];
+
+      document.addEventListener("DOMContentLoaded", () => {
+        console.log("DOM loaded, initializing app");
+        loadCustomers();
+        loadMenu();
+        loadOrders();
+      });
+
+      // --- 1. LOAD CUSTOMERS ---
+      async function loadCustomers() {
+        try {
+          const response = await fetch(`${API_URL}/customers`);
+          const data = await response.json();
+          const select = document.getElementById("customerSelect");
+          select.innerHTML = '<option value="">Pilih Pelanggan...</option>';
+          if (data.records) {
+            data.records.forEach((c) => {
+              const opt = document.createElement("option");
+              opt.value = c.id;
+              opt.textContent = c.name;
+              select.appendChild(opt);
+            });
+          }
+        } catch (e) {
+          console.error(e);
+          Swal.fire("Error", "Gagal memuat data pelanggan", "error");
+        }
+      }
+
+      // --- 2. LOAD MENU (Grid Style) ---
+      let menuData = [];
+      async function loadMenu() {
+        try {
+          const response = await fetch(
+            `${API_URL}/menu_items?filter=is_available,eq,1`
+          );
+          const data = await response.json();
+          menuData = data.records;
+
+          // Update Select (Hidden compatibility)
+          const select = document.getElementById("menuSelect");
+          select.innerHTML =
+            '<option value="">Pilih Makanan/Minuman...</option>';
+
+          // Update Grid (Modern UI)
+          const grid = document.getElementById("menuGrid");
+          grid.innerHTML = "";
+
+          data.records.forEach((item) => {
+            // Populate hidden select
+            const opt = document.createElement("option");
+            opt.value = item.id;
+            opt.textContent = item.name;
+            select.appendChild(opt);
+
+            // Populate Grid
+            const col = document.createElement("div");
+            col.className = "col-sm-6 col-lg-4";
+
+            let icon = item.category === "makanan" ? "fa-burger" : "fa-mug-hot";
+            let iconColor =
+              item.category === "makanan" ? "text-warning" : "text-info";
+            let categoryBadge =
+              item.category === "makanan" ? "text-bg-warning" : "text-bg-info";
+
+            col.innerHTML = `
+                    <div class="card menu-card h-100 p-3" onclick="selectAndAddMenu(${
+                      item.id
+                    })">
+                        <div class="text-center mb-2">
+                            <i class="fa-solid ${icon} fa-3x ${iconColor} opacity-75"></i>
+                        </div>
+                        <div class="text-center">
+                            <h6 class="fw-bold mb-1 text-truncate" title="${
+                              item.name
+                            }">${item.name}</h6>
+                            <span class="badge ${categoryBadge} mb-2" style="font-size: 0.6rem; text-transform: uppercase;">${
+              item.category
+            }</span>
+                            <div class="price-tag text-primary">Rp ${parseInt(
+                              item.price
+                            ).toLocaleString()}</div>
+                        </div>
+                        <button class="btn btn-sm btn-light text-primary w-100 mt-2 rounded-pill fw-bold" style="font-size: 0.8rem;">
+                            <i class="fa-solid fa-plus"></i> Tambah
+                        </button>
+                    </div>
+                `;
+            grid.appendChild(col);
+          });
+        } catch (e) {
+          console.error(e);
+        }
+      }
+
+      // --- HELPER UNTUK KLIK MENU DARI GRID ---
+      function selectAndAddMenu(id) {
+        // Set value dropdown tersembunyi
+        document.getElementById("menuSelect").value = id;
+
+        // Trigger logika Add to Cart
+        addToCart(id);
+      }
+
+      // --- LOGIKA ADD TO CART (Refactored) ---
+      function addToCart(menuId) {
+        const tableNum = document.getElementById("tableNumber").value;
+        const custId = document.getElementById("customerSelect").value;
+        const qty = 1; // Default klik 1 porsi, nanti bisa diedit di cart jika mau lebih kompleks
+
+        if (!tableNum || !custId) {
+          Swal.fire({
+            icon: "warning",
+            title: "Harap isi nomor meja dan pilih pelanggan terlebih dahulu!",
+            confirmButtonText: "OK",
+          });
+          return;
+        }
+
+        if (!menuId) return;
+
+        const selectedItem = menuData.find((m) => m.id == menuId);
+
+        // Cek jika item sudah ada di cart, tambahkan qty nya
+        const existingItemIndex = cart.findIndex(
+          (item) => item.menu_item_id == menuId
+        );
+
+        if (existingItemIndex > -1) {
+          cart[existingItemIndex].qty += 1;
+          cart[existingItemIndex].subtotal =
+            cart[existingItemIndex].price * cart[existingItemIndex].qty;
+        } else {
+          const item = {
+            menu_item_id: menuId,
+            name: selectedItem.name,
+            price: selectedItem.price,
+            qty: qty,
+            subtotal: selectedItem.price * qty,
+          };
+          cart.push(item);
+        }
+
+        updateCartDisplay();
+
+        // Efek Toast kecil
+        const Toast = Swal.mixin({
+          toast: true,
+          position: "top-end",
+          showConfirmButton: false,
+          timer: 1500,
+          timerProgressBar: true,
+        });
+        Toast.fire({
+          icon: "success",
+          title: `+1 ${selectedItem.name}`,
+        });
+
+        if (cart.length > 0) {
+          document.getElementById("tableNumber").disabled = true;
+          document.getElementById("customerSelect").disabled = true;
+        }
+      }
+
+      // --- UPDATE TAMPILAN KERANJANG (Modern UI) ---
+      function updateCartDisplay() {
+        const cartDiv = document.getElementById("cartItems");
+        cartDiv.innerHTML = "";
+
+        if (cart.length === 0) {
+          cartDiv.innerHTML = `
+            <div class="text-center text-muted py-4">
+                <i class="fa-solid fa-basket-shopping fa-2x mb-2 opacity-50"></i>
+                <p class="small">Belum ada menu dipilih</p>
+            </div>`;
+          return;
+        }
+
+        cart.forEach((item, index) => {
+          const div = document.createElement("div");
+          div.className =
+            "d-flex justify-content-between align-items-center border-bottom border-light py-2 animate__animated animate__fadeIn";
+          div.innerHTML = `
+            <div class="flex-grow-1">
+              <div class="fw-bold small text-dark">${item.name}</div>
+              <div class="text-muted" style="font-size: 0.75rem;">
+                ${item.qty} x Rp ${parseInt(item.price).toLocaleString()}
+              </div>
+            </div>
+            <div class="text-end">
+              <div class="fw-bold text-primary small">Rp ${item.subtotal.toLocaleString()}</div>
+              <button class="btn btn-link text-danger p-0" style="font-size: 0.8rem; text-decoration: none;" onclick="removeFromCart(${index})">
+                <i class="fa-solid fa-trash-can"></i>
+              </button>
+            </div>
+          `;
+          cartDiv.appendChild(div);
+        });
+
+        // Total
+        const total = cart.reduce((sum, item) => sum + item.subtotal, 0);
+        const totalDiv = document.createElement("div");
+        totalDiv.className =
+          "d-flex justify-content-between align-items-center mt-3 pt-2 border-top";
+        totalDiv.innerHTML = `
+          <span class="text-secondary fw-bold">Total Bayar</span>
+          <span class="fs-5 fw-bold text-dark">Rp ${total.toLocaleString()}</span>
+        `;
+        cartDiv.appendChild(totalDiv);
+      }
+
+      // --- HAPUS DARI KERANJANG ---
+      function removeFromCart(index) {
+        cart.splice(index, 1);
+        updateCartDisplay();
+
+        if (cart.length === 0) {
+          document.getElementById("tableNumber").disabled = false;
+          document.getElementById("customerSelect").disabled = false;
+        }
+      }
+
+      // --- 3. LOAD ORDERS (Updated Table UI) ---
+      async function loadOrders() {
+        try {
+          const ordersRes = await fetch(`${API_URL}/orders?order=id,desc`);
+          const ordersData = await ordersRes.json();
+
+          const customersRes = await fetch(`${API_URL}/customers`);
+          const customersData = await customersRes.json();
+          const customersMap = {};
+          customersData.records.forEach((c) => (customersMap[c.id] = c));
+
+          const detailsRes = await fetch(`${API_URL}/order_details`);
+          const detailsData = await detailsRes.json();
+          const detailsMap = {};
+          detailsData.records.forEach((d) => {
+            if (!detailsMap[d.order_id]) detailsMap[d.order_id] = [];
+            detailsMap[d.order_id].push(d);
+          });
+
+          const tbody = document.getElementById("ordersTableBody");
+          tbody.innerHTML = "";
+
+          if (ordersData.records) {
+            ordersData.records.forEach((order) => {
+              const cust = customersMap[order.customer_id];
+              const custName = cust ? cust.name : "Umum";
+
+              const details = detailsMap[order.id] || [];
+
+              let total = 0;
+              let itemsCount = 0;
+              let detailTooltip = "";
+
+              details.forEach((d) => {
+                const menu = menuData.find((m) => m.id == d.menu_item_id);
+                const price = menu ? menu.price : 0;
+                total += price * d.qty;
+                itemsCount += d.qty;
+                detailTooltip += `${menu ? menu.name : "?"} (${d.qty}), `;
+              });
+
+              // Badge status logic
+              let statusClass = "bg-secondary";
+              let statusLabel = order.status;
+
+              if (order.status === "cooking") {
+                statusClass = "badge-cooking";
+                statusLabel = "Sedang Dimasak";
+              } else if (order.status === "served") {
+                statusClass = "badge-served";
+                statusLabel = "Disajikan";
+              } else if (order.status === "paid") {
+                statusClass = "badge-paid";
+                statusLabel = "Lunas";
+              }
+
+              const tr = document.createElement("tr");
+              tr.innerHTML = `
+                  <td class="text-center"><span class="badge bg-light text-dark border shadow-sm rounded-pill px-3">#${
+                    order.table_number
+                  }</span></td>
+                  <td class="fw-bold text-secondary">${custName}</td>
+                  <td>
+                    <span class="text-muted small" title="${detailTooltip}">
+                        <i class="fa-solid fa-utensils me-1"></i> ${itemsCount} items
+                    </span>
+                  </td>
+                  <td class="fw-bold text-dark">Rp ${total.toLocaleString()}</td>
+                  <td>
+                      <span class="status-badge ${statusClass}">${statusLabel}</span>
+                  </td>
+                  <td>
+                      <div class="btn-group">
+                        ${
+                          order.status === "cooking"
+                            ? `<button class="btn btn-sm btn-outline-success" title="Selesai Masak" onclick="updateOrderStatus(${order.id}, 'served')"><i class="fa-solid fa-check"></i></button>`
+                            : `<button class="btn btn-sm btn-light text-muted" disabled><i class="fa-solid fa-check"></i></button>`
+                        }
+                        <button class="btn btn-sm btn-outline-danger" title="Hapus" onclick="deleteOrder(${
+                          order.id
+                        })"><i class="fa-solid fa-trash"></i></button>
+                      </div>
+                  </td>
+              `;
+              tbody.appendChild(tr);
+            });
+          }
+        } catch (err) {
+          console.error("Error loading orders:", err);
+        }
+      }
+
+      // --- 4. BUAT PESANAN (SweetAlert Integration) ---
+      document
+        .getElementById("orderForm")
+        .addEventListener("submit", async (e) => {
+          e.preventDefault();
+
+          if (cart.length === 0) {
+            Swal.fire(
+              "Keranjang Kosong",
+              "Silakan pilih menu terlebih dahulu!",
+              "warning"
+            );
+            return;
+          }
+
+          const tableNum = document.getElementById("tableNumber").value;
+          const custId = document.getElementById("customerSelect").value;
+          const userId = 1;
+
+          if (!tableNum || !custId) {
+            Swal.fire(
+              "Data Belum Lengkap",
+              "Mohon isi nomor meja dan pilih pelanggan.",
+              "warning"
+            );
+            return;
+          }
+
+          // Konfirmasi Pesanan
+          const confirmResult = await Swal.fire({
+            title: "Kirim Pesanan?",
+            text: `Meja ${tableNum} - Total Rp ${cart
+              .reduce((sum, item) => sum + item.subtotal, 0)
+              .toLocaleString()}`,
+            icon: "question",
+            showCancelButton: true,
+            confirmButtonColor: "#3085d6",
+            cancelButtonColor: "#d33",
+            confirmButtonText: "Ya, Kirim ke Dapur!",
+          });
+
+          if (!confirmResult.isConfirmed) return;
+
+          Swal.fire({
+            title: "Memproses...",
+            text: "Mengirim data ke dapur",
+            allowOutsideClick: false,
+            didOpen: () => {
+              Swal.showLoading();
+            },
+          });
+
+          try {
+            const orderRes = await fetch(`${API_URL}/orders`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                table_number: tableNum,
+                customer_id: custId,
+                user_id: userId,
+                status: "cooking",
+                payment_status: "unpaid",
+              }),
+            });
+            const orderData = await orderRes.json();
+            const orderId = orderData;
+
+            for (const item of cart) {
+              await fetch(`${API_URL}/order_details`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  order_id: orderId,
+                  menu_item_id: item.menu_item_id,
+                  qty: item.qty,
+                  subtotal: item.subtotal,
+                }),
+              });
+            }
+
+            Swal.fire(
+              "Berhasil!",
+              `Pesanan Meja ${tableNum} telah dikirim ke dapur.`,
+              "success"
+            );
+
+            cart = [];
+            updateCartDisplay();
+            document.getElementById("tableNumber").disabled = false;
+            document.getElementById("customerSelect").disabled = false;
+            document.getElementById("orderForm").reset();
+            loadOrders();
+          } catch (err) {
+            console.error(err);
+            Swal.fire(
+              "Gagal",
+              "Terjadi kesalahan sistem saat membuat pesanan.",
+              "error"
+            );
+          }
+        });
+
+      // --- 5. HAPUS PESANAN (SweetAlert) ---
+      async function deleteOrder(id) {
+        const result = await Swal.fire({
+          title: "Batalkan Pesanan?",
+          text: "Data pesanan akan dihapus permanen.",
+          icon: "warning",
+          showCancelButton: true,
+          confirmButtonColor: "#d33",
+          cancelButtonColor: "#3085d6",
+          confirmButtonText: "Ya, Hapus!",
+        });
+
+        if (result.isConfirmed) {
+          try {
+            await fetch(`${API_URL}/orders/${id}`, { method: "DELETE" });
+            loadOrders();
+            Swal.fire("Terhapus!", "Pesanan telah dibatalkan.", "success");
+          } catch (e) {
+            Swal.fire("Error", "Gagal menghapus data.", "error");
+          }
+        }
+      }
+
+      // --- HAPUS SEMUA PESANAN (SweetAlert) ---
+      async function deleteAllOrders() {
+        const result = await Swal.fire({
+          title: "Hapus SEMUA Pesanan?",
+          text: "Tindakan ini akan menghapus seluruh antrian dan riwayat pesanan yang tampil. Tidak bisa dikembalikan!",
+          icon: "warning",
+          showCancelButton: true,
+          confirmButtonColor: "#d33",
+          cancelButtonColor: "#3085d6",
+          confirmButtonText: "Ya, Bersihkan Semua!",
+        });
+
+        if (result.isConfirmed) {
+          try {
+            const response = await fetch(`${API_URL}/orders`);
+            const data = await response.json();
+            if (data.records && data.records.length > 0) {
+              // Cek apakah semua sudah disajikan
+              const unfinishedOrders = data.records.filter(
+                (order) => order.status !== "served" && order.status !== "paid"
+              );
+              if (unfinishedOrders.length > 0) {
+                Swal.fire(
+                  "Tidak Bisa",
+                  `Masih ada ${unfinishedOrders.length} pesanan yang belum disajikan!`,
+                  "warning"
+                );
+                return;
+              }
+
+              for (const order of data.records) {
+                await fetch(`${API_URL}/orders/${order.id}`, {
+                  method: "DELETE",
+                });
+              }
+            }
+            loadOrders();
+            Swal.fire("Selesai", "Semua pesanan telah dihapus.", "success");
+          } catch (err) {
+            console.error(err);
+            Swal.fire("Error", "Gagal melakukan reset data.", "error");
+          }
+        }
+      }
+
+      // --- UPDATE STATUS PESANAN (Helper) ---
+      async function updateOrderStatus(id, newStatus) {
+        try {
+          await fetch(`${API_URL}/orders/${id}`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ status: newStatus }),
+          });
+          loadOrders();
+          const Toast = Swal.mixin({
+            toast: true,
+            position: "top-end",
+            showConfirmButton: false,
+            timer: 2000,
+          });
+          Toast.fire({ icon: "success", title: "Status pesanan diperbarui" });
+        } catch (err) {
+          console.error(err);
+          Swal.fire("Error", "Gagal update status.", "error");
+        }
+      }
+
+      // --- 6. TAMBAH PELANGGAN (SweetAlert) ---
+      document
+        .getElementById("addCustomerForm")
+        .addEventListener("submit", async (e) => {
+          e.preventDefault();
+          const name = document.getElementById("newCustName").value;
+          const phone = document.getElementById("newCustPhone").value;
+
+          try {
+            const res = await fetch(`${API_URL}/customers`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ name, phone }),
+            });
+
+            if (res.ok) {
+              Swal.fire("Berhasil", "Data Pelanggan Tersimpan", "success");
+              bootstrap.Modal.getInstance(
+                document.getElementById("addCustomerModal")
+              ).hide();
+              document.getElementById("addCustomerForm").reset();
+              loadCustomers();
+            }
+          } catch (e) {
+            Swal.fire("Gagal", "Gagal menyimpan pelanggan", "error");
+          }
+        });
+
+      // --- TAMBAH MENU (SweetAlert) ---
+      document
+        .getElementById("addMenuForm")
+        .addEventListener("submit", async (e) => {
+          e.preventDefault();
+          const name = document.getElementById("newMenuName").value;
+          const price = parseInt(document.getElementById("newMenuPrice").value);
+          const category = document.getElementById("newMenuCategory").value;
+          const is_available = document.getElementById("newMenuAvailable")
+            .checked
+            ? 1
+            : 0;
+
+          try {
+            const res = await fetch(`${API_URL}/menu_items`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ name, price, category, is_available }),
+            });
+
+            if (res.ok) {
+              Swal.fire("Berhasil", "Menu Baru Tersimpan", "success");
+              bootstrap.Modal.getInstance(
+                document.getElementById("addMenuModal")
+              ).hide();
+              document.getElementById("addMenuForm").reset();
+              loadMenu();
+            } else {
+              Swal.fire("Gagal", "Gagal menyimpan menu", "error");
+            }
+          } catch (e) {
+            console.error(e);
+            Swal.fire("Error", "Terjadi kesalahan sistem", "error");
+          }
+        });
+    </script>
+  </body>
+</html>
